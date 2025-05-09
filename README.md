@@ -47,7 +47,7 @@ cd civitai-downloader
 2. Install the required dependencies:
 
 ```bash
-pip install requests pyyaml
+pip install -r requirements.txt
 ```
 
 ## Configuration
