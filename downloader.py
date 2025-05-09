@@ -60,7 +60,7 @@ def sanitize_filename(filename):
 def create_download_directory(collection_info):
     """Create a directory for downloading files based on collection info."""
     # Ensure we have a valid download directory
-    download_dir = config.get('download_dir')
+    download_dir = os.path.expanduser(config.get('download_dir'))
     if not download_dir:
         download_dir = os.path.join(os.path.expanduser('~'), 'Pictures', 'CivitAI')
         logger.warning(f"Download directory not found in config, using default: {download_dir}")

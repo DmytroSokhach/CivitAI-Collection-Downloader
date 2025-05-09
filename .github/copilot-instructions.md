@@ -5,6 +5,7 @@ name: CivitAI Downloader
 ---
 # Copilot Instructions for CivitAI-Collection-Downloader
 
+## Chat instructions
 - Context Check: Begin every response with a random emoji (e.g., 🐙) to confirm context retention.
 - Classify changes as Small/Medium/Large
 - Create a system within the project that automatically keeps track of all changes made to the code, along with timestamps and descriptions of each change. Log changes in changelog.md
