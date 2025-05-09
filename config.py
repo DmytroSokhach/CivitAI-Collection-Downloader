@@ -53,6 +53,7 @@ def prompt_for_config():
     print(f"\nDefault download directory: {default_dir}")
     custom_dir = input("Press Enter to accept or type a custom path: ").strip()
     download_dir = custom_dir if custom_dir else default_dir
+    download_dir = os.path.expanduser(download_dir)
 
     return {
         'api_key': api_key,
@@ -71,7 +72,7 @@ def save_config(config_data, config_file):
 
 def init_config(config_path=None):
     if config_path:
-        config_file = Path(config_path)
+        config_file = Path(os.path.expanduser(config_path))
     else:
         config_dir = Path(os.path.expanduser('~'), '.civitai_downloader')
         config_file = config_dir / 'config.json'
@@ -154,31 +155,6 @@ def create_direct_config():
         'download_dir': os.path.join(os.path.expanduser('~'), 'Pictures', 'CivitAI')
     }
 
-    try:
-        with open(config_file, 'w') as f:
-            json.dump(simple_config, f, indent=4)
-        print(f"Configuration saved to {config_file}")
-        return True
-    except Exception as e:
-        print(f"Error saving configuration: {e}")
-        return False
-
-    try:
-        with open(config_file, 'w') as f:
-            json.dump(simple_config, f, indent=4)
-        print(f"Configuration saved to {config_file}")
-        return True
-    except Exception as e:
-        print(f"Error saving configuration: {e}")
-        return False
-
-    # Create a basic configuration
-    simple_config = {
-        'api_key': api_key,
-        'download_dir': os.path.join(os.path.expanduser('~'), 'Pictures', 'CivitAI')
-    }
-
-    # Save the configuration
     try:
         with open(config_file, 'w') as f:
             json.dump(simple_config, f, indent=4)
