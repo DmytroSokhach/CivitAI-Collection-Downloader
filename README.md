@@ -25,6 +25,7 @@ All content is organized into a structured directory hierarchy for easy browsing
 - **Complete Metadata**: Automatically retrieves and saves generation prompts, models used, tags, and other details
 - **Reliable Downloads**: Built-in retry logic for handling network errors and interruptions
 - **Flexible Configuration**: Customizable download locations and behavior
+- **Collection Filtering**: Use `--filter` to pass query params (e.g. `baseModels=Illustrious withMeta=true tools=86`) for advanced collection filtering
 - **Dry Run Mode**: Preview what would be downloaded without actually downloading files
 - **Verbose Logging**: Detailed information about the download process when needed
 
@@ -94,7 +95,7 @@ python main.py --collection 12345 23456 34567
 ### Command Line Options
 
 ```
-usage: main.py [-h] (-c COLLECTION [COLLECTION ...] | -p POST [POST ...]) [-o OUTPUT] [-v] [--no-metadata] [--dry-run]
+usage: main.py [-h] (-c COLLECTION [COLLECTION ...] | -p POST [POST ...]) [-o OUTPUT] [-v] [--no-metadata] [--dry-run] [--filter [FILTER ...]]
 
 Download images, videos, and metadata from CivitAI collections and posts.
 
@@ -109,6 +110,7 @@ options:
   -v, --verbose         Enable verbose output
   --no-metadata         Skip metadata generation
   --dry-run             Show what would be downloaded without downloading
+  --filter [FILTER ...] Query params for collection filtering, e.g. baseModels=Illustrious withMeta=true tools=86
 ```
 
 ### Examples
@@ -135,6 +137,12 @@ Download without saving metadata:
 
 ```bash
 python main.py --collection 12345 --no-metadata
+```
+
+Download a filtered collection (e.g. only Illustrious base model, withMeta, and tool 86):
+
+```bash
+python main.py --collection 6640851 --filter baseModels=Illustrious withMeta=true tools=86
 ```
 
 ## Output Structure

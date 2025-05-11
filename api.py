@@ -52,98 +52,73 @@ class CivitaiAPI:
             logger.error(f"Error fetching collection {collection_id}: {e}")
             return None
     
-    def get_images_in_collection(self, collection_id, cursor=None):
-        """Get images in a collection with pagination support."""
-        # Create the request data exactly like the working script
+    def get_images_in_collection(self, collection_id, cursor=None, filters=None):
+        """Get images in a collection with pagination support and optional filters."""
         request_data = {
             "json": {
                 "collectionId": int(collection_id),
                 "period": "AllTime",
                 "sort": "Newest",
-                "browsingLevel": 31,  # 31 = 1(PG) + 2(PG-13) + 4(R) + 8(X) + 16(XXX)
+                "browsingLevel": 31,
                 "include": ["cosmetics"],
                 "cursor": cursor,
                 "authed": True
             }
         }
-        
-        # Add meta field only for the first request (when cursor is None)
+        # Apply filters if provided
+        if filters:
+            request_data["json"].update(filters)
         if cursor is None:
             request_data["meta"] = {"values": {"cursor": ["undefined"]}}
-        
-        # Construct the URL exactly like the working script
         encoded_input = quote(json.dumps(request_data, separators=(',', ':')))
         url = f"{self.BASE_URL}/image.getInfinite?input={encoded_input}"
-        
-        logger.info(f"Fetching images in collection {collection_id}{' with cursor' if cursor else ''}")
+        logger.info(f"Fetching images in collection {collection_id}{' with cursor' if cursor else ''} (filters: {filters})")
         logger.debug(f"Request URL: {url}")
         logger.debug(f"Request headers: {self.headers}")
         logger.debug(f"Request data: {request_data}")
-        
         try:
-            # Make direct request with just the authorization header
-            logger.debug("Sending request to CivitAI API...")
             response = requests.get(url, headers=self.headers)
-            
-            logger.debug(f"Response status code: {response.status_code}")
             response.raise_for_status()
-            
             result = response.json()
-            logger.debug(f"Response received: {result.keys()}")
-            
-            # Extract the data
             items = result.get('result', {}).get('data', {}).get('json', {}).get('items', [])
             next_cursor = result.get('result', {}).get('data', {}).get('json', {}).get('nextCursor')
-            
             logger.debug(f"Retrieved {len(items)} items, next cursor: {next_cursor}")
-            
             return {
                 "items": items,
                 "nextCursor": next_cursor
             }
-            
         except Exception as e:
             logger.error(f"Error fetching images from collection {collection_id}: {e}")
             if 'response' in locals():
                 logger.error(f"Response status: {response.status_code}")
                 logger.error(f"Response content: {response.text[:500]}")
             return {"items": [], "nextCursor": None}
-    
-    def get_all_images_in_collection(self, collection_id):
-        """Get all images in a collection by handling pagination."""
+
+    def get_all_images_in_collection(self, collection_id, filters=None):
+        """Get all images in a collection by handling pagination and optional filters."""
         all_images = []
         cursor = None
         batch_count = 0
-        
-        logger.info(f"Starting retrieval of all images from collection {collection_id}")
-        
+        logger.info(f"Starting retrieval of all images from collection {collection_id} (filters: {filters})")
         while True:
             batch_count += 1
             logger.debug(f"Retrieving batch #{batch_count} of images...")
-            
-            result = self.get_images_in_collection(collection_id, cursor)
+            result = self.get_images_in_collection(collection_id, cursor, filters)
             if not result or not result.get("items"):
-                if not all_images:  # No images retrieved at all
+                if not all_images:
                     logger.error(f"No images found in collection {collection_id}")
                 break
-                
             batch_items = result.get("items", [])
             logger.debug(f"Retrieved batch of {len(batch_items)} images from collection {collection_id}")
-            
-            # Log some details about the first few items
             if batch_items and len(batch_items) > 0 and batch_count == 1:
                 first_item = batch_items[0]
                 logger.debug(f"First item sample - ID: {first_item.get('id')}, Name: {first_item.get('name')}, URL: {first_item.get('url')}")
-            
             all_images.extend(batch_items)
-            
             cursor = result.get("nextCursor")
             logger.debug(f"Next cursor: {cursor}")
-            
             if not cursor:
                 logger.debug("No more pages to retrieve")
                 break
-        
         logger.info(f"Retrieved a total of {len(all_images)} images from collection {collection_id}")
         return all_images
     

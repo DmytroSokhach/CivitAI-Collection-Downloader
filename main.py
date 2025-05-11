@@ -11,6 +11,42 @@ from config import init_config, config, setup_logging
 from api import CivitaiAPI, extract_metadata, create_collection_metadata
 from downloader import create_download_directory, download_media, save_metadata, sanitize_filename
 
+def parse_query_params(param_list):
+    """Parse a list of key=value strings or a single ampersand-joined string into a dictionary for API filters.
+    Keys like 'baseModels' and 'tools' are always parsed as arrays.
+    """
+    filters = {}
+    if not param_list:
+        return filters
+    array_keys = {"baseModels", "tools"}
+    joined = []
+    for param in param_list:
+        if '&' in param:
+            joined.extend(param.split('&'))
+        else:
+            joined.append(param)
+    for param in joined:
+        if '=' in param:
+            k, v = param.split('=', 1)
+            # Convert booleans and numbers
+            if v.lower() == 'true':
+                v = True
+            elif v.lower() == 'false':
+                v = False
+            elif v.isdigit():
+                v = int(v)
+            # Always parse certain keys as arrays
+            if k in array_keys:
+                # If comma-separated, split, else wrap in list
+                if ',' in str(v):
+                    arr = [int(x) if x.isdigit() else x for x in v.split(',')]
+                    filters[k] = arr
+                else:
+                    filters[k] = [v]
+            else:
+                filters[k] = v
+    return filters
+
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -19,20 +55,20 @@ def parse_arguments():
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-c", "--collection", type=str, nargs='+', help="Collection ID(s) to download. Can specify multiple IDs.")
     group.add_argument("-p", "--post", type=str, nargs='+', help="Post ID(s) to download. Can specify multiple IDs.")
-    
     parser.add_argument("-o", "--output", type=str, help="Override default download location")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("--no-metadata", action="store_true", help="Skip metadata generation")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be downloaded without downloading")
+    parser.add_argument("--filter", type=str, nargs='*', help="Query params for collection filtering, e.g. baseModels=Illustrious withMeta=true tools=86")
     
     return parser.parse_args()
 
-def process_collection(api, collection_id, dry_run=False, skip_metadata=False, api_key=None):
+def process_collection(api, collection_id, dry_run=False, skip_metadata=False, api_key=None, filters=None):
     """Process a collection and download its media and metadata."""
     try:
         download_dir = create_download_directory(collection_id)
 
-        media_items = api.get_all_images_in_collection(collection_id)
+        media_items = api.get_all_images_in_collection(collection_id, filters=filters)
         if not media_items:
             logging.error(f"No media found in collection: {collection_id}")
             return False
@@ -172,11 +208,13 @@ def main():
     start_time = time.time()
     success = True  # Changed to track overall success
     
+    filters = parse_query_params(args.filter) if hasattr(args, 'filter') and args.filter else None
+    
     try:
         if args.collection:
             for collection_id in args.collection:
                 logger.info(f"Processing collection: {collection_id}")
-                collection_success = process_collection(api, collection_id, args.dry_run, args.no_metadata, api_key)
+                collection_success = process_collection(api, collection_id, args.dry_run, args.no_metadata, api_key, filters=filters)
                 success = success and collection_success  # Only stays True if all succeed
                 
         elif args.post:
