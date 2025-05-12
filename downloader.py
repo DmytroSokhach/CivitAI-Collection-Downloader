@@ -8,6 +8,7 @@ import mimetypes
 from pathlib import Path
 from urllib.parse import urlparse
 
+from civitai_image_grabber.core_download import CivitSingleImageDownloader
 from config import config
 
 logger = logging.getLogger(__name__)
@@ -114,7 +115,8 @@ def ensure_download_url(url, base_name, api_key):
             return None
         filename = os.path.basename(base_name)
         original_url = url
-        url = f"https://image.civitai.com/{api_key}/{url}/{filename}"
+        # url = f"https://image.civitai.com/{api_key}/{url}/{filename}"
+        url = f"https://image.civitai.com/{api_key}/{url}/original=true"
         logger.debug(f"Constructed download URL from '{original_url}' to '{url}'")
     return url
 
@@ -150,8 +152,9 @@ def download_file(url, output_path, mime_type=None, max_retries=3, api_key=None)
                 # Save the file in chunks like the original script
                 logger.debug(f"Writing file to {output_path}")
                 with open(output_path, "wb") as f:
-                    for chunk in response.iter_content():
-                        f.write(chunk)
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:  # filter out keep-alive chunks
+                            f.write(chunk)
 
             logger.debug(f"Successfully downloaded file to {output_path}")
             return True
@@ -211,6 +214,8 @@ def download_media(media_data, download_dir, api_key=None):
         max_retries=config.get("max_retries", 3),
         api_key=api_key,
     )
+    # downloader = CivitSingleImageDownloader()
+    # downloader.download_image_async(url, file_path)
 
     if success:
         return file_path  # Return Path object
